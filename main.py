@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QComboBox, QCheckBox, QPushButton, QGroupBox, QListWidget,
     QListWidgetItem, QMessageBox, QTableWidget,
-    QTableWidgetItem, QAbstractItemView, QSizePolicy
+    QTableWidgetItem, QAbstractItemView, QSizePolicy, QHeaderView
 )
 from PyQt5.QtCore import Qt
 from calibre.gui2 import error_dialog, info_dialog
@@ -501,9 +501,8 @@ class PreviewWindow(QDialog):
         super().__init__(parent)
         self.previews = previews
         self.setWindowTitle("元数据修改预览")
-        self.setMinimumWidth(600)
+        # 移除固定最小宽度，让窗口完全自适应
         self.setMinimumHeight(400)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setup_ui()
     
     def setup_ui(self):
@@ -522,7 +521,7 @@ class PreviewWindow(QDialog):
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setAlternatingRowColors(True)
-        # 设置表格大小策略，允许扩展
+        # 设置表格大小策略
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         # 设置列对齐方式
@@ -562,18 +561,6 @@ class PreviewWindow(QDialog):
             item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(i, 4, item)
         
-        # 先自动调整列宽，获取基础宽度
-        self.table.resizeColumnsToContents()
-        
-        # 为每一列增加固定留白，避免内容挤在一起
-        padding = 30  # 每列增加30px的留白
-        total_width = 0
-        for i in range(self.table.columnCount()):
-            current_width = self.table.columnWidth(i)
-            new_width = current_width + padding
-            self.table.setColumnWidth(i, new_width)
-            total_width += new_width
-        
         # 添加到布局
         main_layout.addWidget(self.table)
         
@@ -586,13 +573,63 @@ class PreviewWindow(QDialog):
         
         main_layout.addLayout(button_layout)
         
-        # 根据计算的总宽度调整窗口大小
-        # 添加一些额外的宽度用于窗口边框和内边距
-        extra_width = 10
-        window_width = total_width + extra_width
-        
         # 设置窗口最小高度
         min_height = max(400, 30 + len(self.previews) * 25)  # 根据行数调整最小高度
+        self.setMinimumHeight(min_height)
+        
+        # 计算并设置合适的窗口大小
+        self.adjust_window_size()
+    
+    def adjust_window_size(self):
+        """
+        调整窗口大小以适应内容
+        """
+        # 先让表格调整列宽
+        self.table.resizeColumnsToContents()
+        
+        # 计算表格的总宽度（包括列宽）
+        total_width = 0
+        for i in range(self.table.columnCount()):
+            total_width += self.table.columnWidth(i)
+        
+        # 为每一列增加少量留白，避免内容挤在一起
+        padding = 10  # 每列增加10px的留白
+        for i in range(self.table.columnCount()):
+            current_width = self.table.columnWidth(i)
+            new_width = current_width + padding
+            self.table.setColumnWidth(i, new_width)
+        
+        # 重新计算总宽度
+        total_width = 0
+        for i in range(self.table.columnCount()):
+            total_width += self.table.columnWidth(i)
+        
+        # 添加表格边框和窗口边框的宽度
+        total_width += 35  # 表格和窗口边框
+        
+        # 设置合理的最大宽度（屏幕宽度的80%）
+        screen_geometry = self.screen().availableGeometry()
+        max_width = int(screen_geometry.width() * 0.8)
+        
+        # 确保宽度在合理范围内
+        final_width = min(max(600, total_width), max_width)
+        
+        # 计算高度
+        row_height = 25
+        header_height = 30
+        button_height = 40
+        window_height = header_height + (len(self.previews) * row_height) + button_height + 40
+        
+        # 确保高度在合理范围内
+        min_height = max(400, 30 + len(self.previews) * 25)
+        max_height = int(screen_geometry.height() * 0.8)
+        final_height = min(max(min_height, window_height), max_height)
         
         # 调整窗口大小
-        self.resize(window_width, min_height)
+        self.resize(final_width, final_height)
+        
+        # 居中显示
+        self.move(
+            (screen_geometry.width() - final_width) // 2,
+            (screen_geometry.height() - final_height) // 2
+        )
