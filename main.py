@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QComboBox, QCheckBox, QPushButton, QGroupBox, QListWidget,
     QListWidgetItem, QMessageBox, QTableWidget,
-    QTableWidgetItem, QAbstractItemView, QSizePolicy, QHeaderView
+    QTableWidgetItem, QAbstractItemView, QSizePolicy
 )
 from PyQt5.QtCore import Qt
 from calibre.gui2 import error_dialog, info_dialog
